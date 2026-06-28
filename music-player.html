@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村晚音乐播放器 v3.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 16px;
+            font-size: 20px;
+            color: #00d4ff;
+            font-weight: 600;
+        }
+        h1 .ver {
+            font-size: 11px;
+            color: #555;
+            font-weight: 400;
+            margin-left: 6px;
+        }
+        .player-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .now-playing {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .now-playing .song-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        .now-playing .artist {
+            font-size: 13px;
+            color: #aaa;
+        }
+        .lyrics-container {
+            height: 120px;
+            overflow: hidden;
+            margin: 12px 0;
+            position: relative;
+        }
+        .lyrics {
+            color: #666;
+            font-size: 14px;
+            line-height: 2;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .lyrics .line {
+            padding: 2px 0;
+        }
+        .lyrics .line.active {
+            color: #00d4ff;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            position: relative;
+        }
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 4px;
+            width: 0%;
+        }
+        .chorus-marker {
+            position: absolute;
+            top: -3px;
+            height: 14px;
+            background: rgba(255, 215, 0, 0.4);
+            border-left: 2px solid #ffd700;
+            border-right: 2px solid #ffd700;
+            border-radius: 2px;
+            pointer-events: none;
+            display: none;
+        }
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 36px;
+            padding: 12px 0;
+        }
+        .control-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            opacity: 0.9;
+        }
+        .control-btn:active {
+            opacity: 0.4;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .volume-control .vol-icon {
+            font-size: 16px;
+            color: #888;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .volume-control input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 120px;
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+            outline: none;
+        }
+        .volume-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+        }
+        .toggles {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 14px;
+        }
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #888;
+        }
+        .toggle-item input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 40px;
+            height: 22px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .toggle-item input[type="checkbox"]::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #888;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+        .toggle-item input[type="checkbox"]:checked {
+            background: rgba(0,212,255,0.4);
+        }
+        .toggle-item input[type="checkbox"]:checked::after {
+            left: 20px;
+            background: #00d4ff;
+        }
+        .playlist-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 14px;
+        }
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .playlist-header h2 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .search-box {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            width: 140px;
+            font-size: 13px;
+            outline: none;
+        }
+        .search-box::placeholder {
+            color: #666;
+        }
+        .playlist {
+            max-height: 50vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .playlist::-webkit-scrollbar {
+            width: 4px;
+        }
+        .playlist::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+        }
+        .song-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .song-item:active {
+            background: rgba(255,255,255,0.1);
+        }
+        .song-item.playing {
+            background: rgba(0,212,255,0.15);
+            border-left: 3px solid #00d4ff;
+        }
+        .song-item .num {
+            width: 28px;
+            font-size: 12px;
+            color: #555;
+            flex-shrink: 0;
+        }
+        .song-item.playing .num {
+            color: #00d4ff;
+        }
+        .song-item .info {
+            flex: 1;
+            min-width: 0;
+        }
+        .song-item .name {
+            font-size: 14px;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .song-item .artist {
+            font-size: 12px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .error-msg {
+            text-align: center;
+            padding: 8px;
+            color: #ff6b6b;
+            font-size: 13px;
+        }
+        .loading {
+            text-align: center;
+            padding: 12px;
+            color: #4ecdc4;
+            font-size: 13px;
+            display: none;
+        }
+        .loading.active {
+            display: block;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #4ecdc4;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .switch-source-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #aaa;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .switch-source-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+        .source-info {
+            font-size: 11px;
+            color: #555;
+            margin-left: 4px;
+        }
+        @media (min-width: 480px) {
+            .container { padding: 20px; }
+            h1 { font-size: 24px; }
+            .lyrics-container { height: 150px; }
+            .control-btn { font-size: 40px; }
+            .search-box { width: 160px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 村晚音乐播放器 <span class="ver">v3.0</span></h1>
+        
+        <div class="player-card">
+            <div class="now-playing">
+                <div class="song-name" id="songName">选择歌曲开始播放</div>
+                <div class="artist" id="artist"></div>
+            </div>
+            <div class="lyrics-container" id="lyricsContainer">
+                <div class="lyrics" id="lyrics"></div>
+            </div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+                <div class="chorus-marker" id="chorusMarker"></div>
+            </div>
+            <div class="time-display">
+                <span id="currentTime">0:00</span>
+                <span id="totalTime">0:00</span>
+            </div>
+            <div class="controls">
+                <button class="control-btn" id="prevBtn" title="上一首">‹</button>
+                <button class="control-btn" id="playBtn" title="播放/暂停">▶</button>
+                <button class="control-btn" id="nextBtn" title="下一首">›</button>
+            </div>
+            <div class="volume-control">
+                <span class="vol-icon" id="volIcon">🔊</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="100">
+            </div>
+            <div class="toggles">
+                <div class="toggle-item">
+                    <input type="checkbox" id="randomMode">
+                    <label for="randomMode">随机播放</label>
+                </div>
+                <div class="toggle-item">
+                    <input type="checkbox" id="chorusOnly">
+                    <label for="chorusOnly">只听副歌</label>
+                </div>
+                <div class="toggle-item source-switch" id="sourceSwitch" style="display:none">
+                    <button id="switchSourceBtn" class="switch-source-btn">换源</button>
+                    <span id="sourceInfo" class="source-info"></span>
+                </div>
+            </div>
+            <div id="errorMsg" class="error-msg"></div>
+            <div id="loading" class="loading">正在加载歌曲</div>
+        </div>
+
+        <div class="playlist-section">
+            <div class="playlist-header">
+                <h2>歌单列表</h2>
+                <input type="text" class="search-box" id="searchBox" placeholder="搜索歌曲...">
+            </div>
+            <div class="playlist" id="playlist"></div>
+        </div>
+    </div>
+
+    <audio id="audio" style="display:none" preload="auto" crossOrigin="anonymous"></audio>
+
+    <script>
+        // 歌单数据
+        const songs = [
+            {"name": "月亮代表我的心", "artist": "邓丽君"},
+            {"name": "甜蜜蜜", "artist": "邓丽君"},
+            {"name": "但愿人长久", "artist": "邓丽君/王菲"},
+            {"name": "小城故事", "artist": "邓丽君"},
+            {"name": "我只在乎你", "artist": "邓丽君"},
+            {"name": "沧海一声笑", "artist": "许冠杰"},
+            {"name": "朋友", "artist": "周华健"},
+            {"name": "真心英雄", "artist": "周华健/成龙/李宗盛"},
+            {"name": "花心", "artist": "周华健"},
+            {"name": "风继续吹", "artist": "张国荣"},
+            {"name": "当年情", "artist": "张国荣"},
+            {"name": "明天会更好", "artist": "群星"},
+            {"name": "恰似你的温柔", "artist": "蔡琴"},
+            {"name": "你的眼神", "artist": "蔡琴"},
+            {"name": "外婆的澎湖湾", "artist": "潘安邦"},
+            {"name": "乡间的小路", "artist": "刘文正"},
+            {"name": "兰花草", "artist": "刘文正"},
+            {"name": "光阴的故事", "artist": "罗大佑"},
+            {"name": "童年", "artist": "罗大佑"},
+            {"name": "恋曲1990", "artist": "罗大佑"},
+            {"name": "驿动的心", "artist": "姜育恒"},
+            {"name": "再回首", "artist": "姜育恒"},
+            {"name": "大海", "artist": "张雨生"},
+            {"name": "一天到晚游泳的鱼", "artist": "张雨生"},
+            {"name": "把悲伤留给自己", "artist": "陈升"},
+            {"name": "追梦人", "artist": "凤飞飞"},
+            {"name": "我想有个家", "artist": "潘美辰"},
+            {"name": "我的中国心", "artist": "张明敏"},
+            {"name": "我的未来不是梦", "artist": "张雨生"},
+            {"name": "水手", "artist": "郑智化"},
+            {"name": "星星点灯", "artist": "郑智化"},
+            {"name": "偏偏喜欢你", "artist": "陈百强"},
+            {"name": "沉默是金", "artist": "张国荣"},
+            {"name": "一生何求", "artist": "陈百强"},
+            {"name": "万水千山总是情", "artist": "汪明荃"},
+            {"name": "上海滩", "artist": "叶丽仪"},
+            {"name": "不了情", "artist": "顾媚"},
+            {"name": "南屏晚钟", "artist": "蔡琴"},
+            {"name": "萍聚", "artist": "李翊君/李富兴"},
+            {"name": "月亮惹的祸", "artist": "张宇"},
+            {"name": "用心良苦", "artist": "张宇"},
+            {"name": "大约在冬季", "artist": "齐秦"},
+            {"name": "弯弯的月亮", "artist": "刘欢"},
+            {"name": "好汉歌", "artist": "刘欢"},
+            {"name": "祝你平安", "artist": "孙悦"},
+            {"name": "相约一九九八", "artist": "那英/王菲"},
+            {"name": "一身是胆", "artist": "成龙"},
+            {"name": "晴天", "artist": "周杰伦"},
+            {"name": "七里香", "artist": "周杰伦"},
+            {"name": "稻香", "artist": "周杰伦"},
+            {"name": "简单爱", "artist": "周杰伦"},
+            {"name": "青花瓷", "artist": "周杰伦"},
+            {"name": "双截棍", "artist": "周杰伦"},
+            {"name": "十年", "artist": "陈奕迅"},
+            {"name": "富士山下", "artist": "陈奕迅"},
+            {"name": "浮夸", "artist": "陈奕迅"},
+            {"name": "K歌之王", "artist": "陈奕迅"},
+            {"name": "江南", "artist": "林俊杰"},
+            {"name": "一千年以后", "artist": "林俊杰"},
+            {"name": "她来听我的演唱会", "artist": "张学友"},
+            {"name": "吻别", "artist": "张学友"},
+            {"name": "一路上有你", "artist": "张学友"},
+            {"name": "饿狼传说", "artist": "张学友"},
+            {"name": "爱如潮水", "artist": "张信哲"},
+            {"name": "过火", "artist": "张信哲"},
+            {"name": "明天我要嫁给你", "artist": "周华健"},
+            {"name": "让我欢喜让我忧", "artist": "周华健"},
+            {"name": "爱就一个字", "artist": "张信哲"},
+            {"name": "后来", "artist": "刘若英"},
+            {"name": "很爱很爱你", "artist": "刘若英"},
+            {"name": "为爱痴狂", "artist": "刘若英"},
+            {"name": "勇气", "artist": "梁静茹"},
+            {"name": "可惜不是你", "artist": "梁静茹"},
+            {"name": "宁夏", "artist": "梁静茹"},
+            {"name": "挥着翅膀的女孩", "artist": "容祖儿"},
+            {"name": "隐形的翅膀", "artist": "张韶涵"},
+            {"name": "夜来香", "artist": "李香兰"},
+            {"name": "我是一只小小鸟", "artist": "赵传"},
+            {"name": "爱要怎么说出口", "artist": "赵传"},
+            {"name": "你怎么舍得我难过", "artist": "黄品源"},
+            {"name": "独角戏", "artist": "许茹芸"},
+            {"name": "那些花儿", "artist": "朴树"},
+            {"name": "白桦林", "artist": "朴树"},
+            {"name": "平凡之路", "artist": "朴树"},
+            {"name": "北京欢迎你", "artist": "群星"},
+            {"name": "最炫民族风", "artist": "凤凰传奇"},
+            {"name": "月亮之上", "artist": "凤凰传奇"},
+            {"name": "自由飞翔", "artist": "凤凰传奇"},
+            {"name": "荷塘月色", "artist": "凤凰传奇"},
+            {"name": "小苹果", "artist": "筷子兄弟"},
+            {"name": "老男孩", "artist": "筷子兄弟"},
+            {"name": "一剪梅", "artist": "费玉清"},
+            {"name": "千里之外", "artist": "周杰伦/费玉清"},
+            {"name": "日不落", "artist": "蔡依林"},
+            {"name": "倒带", "artist": "蔡依林"},
+            {"name": "同桌的你", "artist": "老狼"},
+            {"name": "睡在我上铺的兄弟", "artist": "老狼"},
+            {"name": "同一首歌", "artist": "群星"},
+            {"name": "青春舞曲", "artist": "王洛宾"},
+            {"name": "在那遥远的地方", "artist": "王洛宾"},
+            {"name": "茉莉花", "artist": "中国民歌"},
+            {"name": "送别", "artist": "李叔同"},
+            {"name": "成都", "artist": "赵雷"},
+            {"name": "理想", "artist": "赵雷"},
+            {"name": "南山南", "artist": "马頔"},
+            {"name": "董小姐", "artist": "宋冬野"},
+            {"name": "安和桥", "artist": "宋冬野"},
+            {"name": "斑马斑马", "artist": "宋冬野"},
+            {"name": "贝加尔湖畔", "artist": "李健"},
+            {"name": "传奇", "artist": "李健/王菲"},
+            {"name": "假如爱有天意", "artist": "李健"},
+            {"name": "橄榄树", "artist": "齐豫"},
+            {"name": "欢颜", "artist": "齐豫"},
+            {"name": "鼓浪屿之波", "artist": "张暴默"},
+            {"name": "达坂城的姑娘", "artist": "王洛宾"},
+            {"name": "好运来", "artist": "祖海"},
+            {"name": "常回家看看", "artist": "陈红"},
+            {"name": "茶山情歌", "artist": "杨钰莹"},
+            {"name": "轻轻地告诉你", "artist": "杨钰莹"},
+            {"name": "心会跟爱一起走", "artist": "高林生/林依轮"},
+            {"name": "知心爱人", "artist": "付笛声/任静"},
+            {"name": "牵手", "artist": "苏芮"},
+            {"name": "酒干倘卖无", "artist": "苏芮"},
+            {"name": "一样的月光", "artist": "苏芮"},
+            {"name": "跟着感觉走", "artist": "苏芮"},
+            {"name": "在那桃花盛开的地方", "artist": "蒋大为"},
+            {"name": "牡丹之歌", "artist": "蒋大为"},
+            {"name": "敢问路在何方", "artist": "蒋大为"},
+            {"name": "英雄赞歌", "artist": "郑绪岚"},
+            {"name": "我和我的祖国", "artist": "李谷一"},
+            {"name": "难忘今宵", "artist": "李谷一"},
+            {"name": "乡恋", "artist": "李谷一"},
+            {"name": "走进新时代", "artist": "张也"},
+            {"name": "红星照我去战斗", "artist": "李双江"},
+            {"name": "弹起我心爱的土琵琶", "artist": "经典"},
+            {"name": "九九艳阳天", "artist": "经典"},
+            {"name": "花儿为什么这样红", "artist": "经典"},
+            {"name": "山丹丹开花红艳艳", "artist": "经典"},
+            {"name": "洪湖水浪打浪", "artist": "经典"},
+            {"name": "映山红", "artist": "经典"},
+            {"name": "东方红", "artist": "经典"},
+            {"name": "南泥湾", "artist": "经典"},
+            {"name": "团结就是力量", "artist": "经典"},
+            {"name": "浏阳河", "artist": "李谷一"},
+            {"name": "我的根啊在中国", "artist": "郑绪岚"},
+            {"name": "精忠报国", "artist": "屠洪刚"},
+            {"name": "霸王别姬", "artist": "屠洪刚"},
+            {"name": "中国人", "artist": "刘德华"},
+            {"name": "感恩的心", "artist": "欧阳菲菲"},
+            {"name": "梦醒时分", "artist": "陈淑桦"},
+            {"name": "问", "artist": "陈淑桦"},
+            {"name": "味道", "artist": "辛晓琪"},
+            {"name": "领悟", "artist": "辛晓琪"},
+            {"name": "伤痕", "artist": "林忆莲"},
+            {"name": "至少还有你", "artist": "林忆莲"},
+            {"name": "听海", "artist": "张惠妹"},
+            {"name": "记得", "artist": "张惠妹"},
+            {"name": "站在高岗上", "artist": "张惠妹"},
+            {"name": "姐姐妹妹站起来", "artist": "张惠妹"},
+            {"name": "小幸运", "artist": "田馥甄"},
+            {"name": "你不知道的事", "artist": "王力宏"},
+            {"name": "唯一", "artist": "王力宏"},
+            {"name": "需要人陪", "artist": "黄小琥"},
+            {"name": "没那么简单", "artist": "黄小琥"},
+            {"name": "时间都去哪儿了", "artist": "王铮亮"},
+            {"name": "父亲", "artist": "筷子兄弟"},
+            {"name": "春天里", "artist": "汪峰"},
+            {"name": "怒放的生命", "artist": "汪峰"},
+            {"name": "存在", "artist": "汪峰"},
+            {"name": "当你老了", "artist": "赵照/莫文蔚"},
+            {"name": "起风了", "artist": "买辣椒也用券"},
+            {"name": "漠河舞厅", "artist": "柳爽"},
+            {"name": "孤勇者", "artist": "陈奕迅"}
+        ];
+
+        let filteredSongs = [...songs];
+        let currentIndex = -1;
+        let isPlaying = false;
+        let searchResults = []; // 保存搜索结果
+        let tryIndex = 0; // 当前尝试的结果索引
+        let playMode = 'sequence'; // 'sequence' 顺序 | 'random' 随机
+
+        const audio = document.getElementById('audio');
+        const playBtn = document.getElementById('playBtn');
+        const randomMode = document.getElementById('randomMode');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalTimeEl = document.getElementById('totalTime');
+        const songNameEl = document.getElementById('songName');
+        const artistEl = document.getElementById('artist');
+        const playlistEl = document.getElementById('playlist');
+        const searchBox = document.getElementById('searchBox');
+        const chorusOnly = document.getElementById('chorusOnly');
+        const chorusMarker = document.getElementById('chorusMarker');
+        const errorMsg = document.getElementById('errorMsg');
+        const loadingEl = document.getElementById('loading');
+
+        // 副歌时间配置 (秒) - 格式: { start: 开始时间, duration: 持续时长 }
+        const chorusConfig = {
+            "月亮代表我的心": { start: 45, duration: 50 },
+            "甜蜜蜜": { start: 30, duration: 45 },
+            "但愿人长久": { start: 90, duration: 50 },
+            "小城故事": { start: 30, duration: 50 },
+            "我只在乎你": { start: 70, duration: 50 },
+            "沧海一声笑": { start: 25, duration: 60 },
+            "朋友": { start: 50, duration: 50 },
+            "真心英雄": { start: 45, duration: 55 },
+            "花心": { start: 35, duration: 50 },
+            "风继续吹": { start: 60, duration: 50 },
+            "当年情": { start: 50, duration: 50 },
+            "明天会更好": { start: 60, duration: 60 },
+            "恰似你的温柔": { start: 45, duration: 50 },
+            "你的眼神": { start: 40, duration: 50 },
+            "外婆的澎湖湾": { start: 25, duration: 50 },
+            "乡间的小路": { start: 30, duration: 50 },
+            "兰花草": { start: 20, duration: 50 },
+            "光阴的故事": { start: 90, duration: 55 },
+            "童年": { start: 55, duration: 50 },
+            "恋曲1990": { start: 80, duration: 55 },
+            "驿动的心": { start: 40, duration: 50 },
+            "再回首": { start: 55, duration: 55 },
+            "大海": { start: 50, duration: 55 },
+            "一天到晚游泳的鱼": { start: 45, duration: 50 },
+            "把悲伤留给自己": { start: 50, duration: 55 },
+            "追梦人": { start: 50, duration: 55 },
+            "我想有个家": { start: 50, duration: 50 },
+            "我的中国心": { start: 35, duration: 50 },
+            "我的未来不是梦": { start: 50, duration: 50 },
+            "水手": { start: 55, duration: 55 },
+            "星星点灯": { start: 55, duration: 55 },
+            "偏偏喜欢你": { start: 40, duration: 50 },
+            "沉默是金": { start: 70, duration: 55 },
+            "一生何求": { start: 50, duration: 55 },
+            "万水千山总是情": { start: 35, duration: 55 },
+            "上海滩": { start: 30, duration: 55 },
+            "不了情": { start: 50, duration: 50 },
+            "南屏晚钟": { start: 30, duration: 50 },
+            "萍聚": { start: 55, duration: 50 },
+            "月亮惹的祸": { start: 45, duration: 50 },
+            "用心良苦": { start: 45, duration: 50 },
+            "大约在冬季": { start: 70, duration: 55 },
+            "弯弯的月亮": { start: 70, duration: 55 },
+            "好汉歌": { start: 20, duration: 50 },
+            "祝你平安": { start: 50, duration: 50 },
+            "相约一九九八": { start: 70, duration: 55 },
+            "一身是胆": { start: 50, duration: 50 },
+            "晴天": { start: 65, duration: 55 },
+            "七里香": { start: 70, duration: 55 },
+            "稻香": { start: 55, duration: 55 },
+            "简单爱": { start: 50, duration: 55 },
+            "青花瓷": { start: 70, duration: 55 },
+            "双截棍": { start: 55, duration: 55 },
+            "十年": { start: 45, duration: 50 },
+            "富士山下": { start: 60, duration: 55 },
+            "浮夸": { start: 70, duration: 55 },
+            "K歌之王": { start: 60, duration: 55 },
+            "江南": { start: 50, duration: 55 },
+            "一千年以后": { start: 55, duration: 55 },
+            "她来听我的演唱会": { start: 60, duration: 55 },
+            "吻别": { start: 50, duration: 55 },
+            "一路上有你": { start: 45, duration: 50 },
+            "饿狼传说": { start: 50, duration: 50 },
+            "爱如潮水": { start: 60, duration: 55 },
+            "过火": { start: 50, duration: 50 },
+            "明天我要嫁给你": { start: 70, duration: 55 },
+            "让我欢喜让我忧": { start: 55, duration: 50 },
+            "爱就一个字": { start: 60, duration: 55 },
+            "后来": { start: 70, duration: 55 },
+            "很爱很爱你": { start: 55, duration: 50 },
+            "为爱痴狂": { start: 60, duration: 55 },
+            "勇气": { start: 55, duration: 50 },
+            "可惜不是你": { start: 70, duration: 55 },
+            "宁夏": { start: 45, duration: 50 },
+            "挥着翅膀的女孩": { start: 60, duration: 55 },
+            "隐形的翅膀": { start: 55, duration: 55 },
+            "夜来香": { start: 40, duration: 50 },
+            "我是一只小小鸟": { start: 50, duration: 55 },
+            "爱要怎么说出口": { start: 55, duration: 50 },
+            "你怎么舍得我难过": { start: 50, duration: 55 },
+            "独角戏": { start: 60, duration: 55 },
+            "那些花儿": { start: 80, duration: 55 },
+            "白桦林": { start: 55, duration: 55 },
+            "平凡之路": { start: 100, duration: 60 },
+            "北京欢迎你": { start: 40, duration: 60 },
+            "最炫民族风": { start: 50, duration: 55 },
+            "月亮之上": { start: 50, duration: 55 },
+            "自由飞翔": { start: 50, duration: 55 },
+            "荷塘月色": { start: 55, duration: 55 },
+            "小苹果": { start: 35, duration: 50 },
+            "老男孩": { start: 70, duration: 55 },
+            "一剪梅": { start: 50, duration: 55 },
+            "千里之外": { start: 60, duration: 55 },
+            "日不落": { start: 45, duration: 50 },
+            "倒带": { start: 55, duration: 50 },
+            "同桌的你": { start: 55, duration: 50 },
+            "睡在我上铺的兄弟": { start: 60, duration: 50 },
+            "同一首歌": { start: 50, duration: 55 },
+            "青春舞曲": { start: 30, duration: 50 },
+            "在那遥远的地方": { start: 30, duration: 50 },
+            "茉莉花": { start: 25, duration: 50 },
+            "送别": { start: 30, duration: 50 },
+            "成都": { start: 75, duration: 55 },
+            "理想": { start: 80, duration: 55 },
+            "南山南": { start: 70, duration: 55 },
+            "董小姐": { start: 50, duration: 55 },
+            "安和桥": { start: 70, duration: 55 },
+            "斑马斑马": { start: 60, duration: 55 },
+            "贝加尔湖畔": { start: 70, duration: 55 },
+            "传奇": { start: 70, duration: 55 },
+            "假如爱有天意": { start: 70, duration: 55 },
+            "橄榄树": { start: 50, duration: 50 },
+            "欢颜": { start: 60, duration: 50 },
+            "鼓浪屿之波": { start: 40, duration: 50 },
+            "达坂城的姑娘": { start: 20, duration: 50 },
+            "好运来": { start: 45, duration: 50 },
+            "常回家看看": { start: 50, duration: 50 },
+            "茶山情歌": { start: 50, duration: 50 },
+            "轻轻地告诉你": { start: 50, duration: 50 },
+            "心会跟爱一起走": { start: 60, duration: 50 },
+            "知心爱人": { start: 60, duration: 55 },
+            "牵手": { start: 70, duration: 50 },
+            "酒干倘卖无": { start: 60, duration: 55 },
+            "一样的月光": { start: 55, duration: 50 },
+            "跟着感觉走": { start: 50, duration: 50 },
+            "在那桃花盛开的地方": { start: 50, duration: 50 },
+            "牡丹之歌": { start: 40, duration: 50 },
+            "敢问路在何方": { start: 50, duration: 50 },
+            "英雄赞歌": { start: 50, duration: 55 },
+            "我和我的祖国": { start: 55, duration: 55 },
+            "难忘今宵": { start: 50, duration: 55 },
+            "乡恋": { start: 50, duration: 50 },
+            "走进新时代": { start: 50, duration: 50 },
+            "红星照我去战斗": { start: 50, duration: 50 },
+            "弹起我心爱的土琵琶": { start: 50, duration: 50 },
+            "九九艳阳天": { start: 50, duration: 50 },
+            "花儿为什么这样红": { start: 40, duration: 50 },
+            "山丹丹开花红艳艳": { start: 50, duration: 55 },
+            "洪湖水浪打浪": { start: 50, duration: 55 },
+            "映山红": { start: 55, duration: 50 },
+            "东方红": { start: 30, duration: 50 },
+            "南泥湾": { start: 35, duration: 50 },
+            "团结就是力量": { start: 30, duration: 50 },
+            "浏阳河": { start: 30, duration: 50 },
+            "我的根啊在中国": { start: 60, duration: 50 },
+            "精忠报国": { start: 50, duration: 55 },
+            "霸王别姬": { start: 60, duration: 55 },
+            "中国人": { start: 50, duration: 55 },
+            "感恩的心": { start: 50, duration: 50 },
+            "梦醒时分": { start: 50, duration: 50 },
+            "问": { start: 45, duration: 50 },
+            "味道": { start: 60, duration: 50 },
+            "领悟": { start: 55, duration: 55 },
+            "伤痕": { start: 55, duration: 50 },
+            "至少还有你": { start: 55, duration: 55 },
+            "听海": { start: 55, duration: 50 },
+            "记得": { start: 60, duration: 50 },
+            "站在高岗上": { start: 40, duration: 50 },
+            "姐姐妹妹站起来": { start: 50, duration: 50 },
+            "小幸运": { start: 55, duration: 50 },
+            "你不知道的事": { start: 70, duration: 55 },
+            "唯一": { start: 60, duration: 50 },
+            "需要人陪": { start: 55, duration: 55 },
+            "没那么简单": { start: 50, duration: 50 },
+            "时间都去哪儿了": { start: 50, duration: 50 },
+            "父亲": { start: 70, duration: 55 },
+            "春天里": { start: 60, duration: 55 },
+            "怒放的生命": { start: 55, duration: 55 },
+            "存在": { start: 60, duration: 55 },
+            "当你老了": { start: 60, duration: 55 },
+            "起风了": { start: 60, duration: 55 },
+            "漠河舞厅": { start: 90, duration: 55 },
+            "孤勇者": { start: 60, duration: 55 },
+        };
+
+        // 搜索功能
+        searchBox.addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase();
+            filteredSongs = songs.filter(s => 
+                s.name.toLowerCase().includes(keyword) || 
+                s.artist.toLowerCase().includes(keyword)
+            );
+            renderPlaylist();
+        });
+
+        // 渲染播放列表
+        function renderPlaylist() {
+            playlistEl.innerHTML = filteredSongs.map((song, i) => {
+                const originalIndex = songs.indexOf(song);
+                return `
+                <div class="song-item ${originalIndex === currentIndex ? 'playing' : ''}" data-index="${originalIndex}">
+                    <span class="num">${originalIndex + 1}</span>
+                    <div class="info">
+                        <div class="name">${song.name}</div>
+                        <div class="artist">${song.artist}</div>
+                    </div>
+                </div>
+            `}).join('');
+
+            // 绑定点击事件
+            playlistEl.querySelectorAll('.song-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const index = parseInt(item.dataset.index);
+                    playSong(index);
+                });
+            });
+        }
+
+        // 播放歌曲
+        // 歌词相关变量
+        let parsedLyrics = [];
+        let currentLyricIndex = -1;
+
+        // 解析LRC格式歌词
+        function parseLRC(lrcText) {
+            const lines = lrcText.split('\n');
+            const lyrics = [];
+            const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
+            
+            for (const line of lines) {
+                const match = line.match(timeRegex);
+                if (match) {
+                    const mins = parseInt(match[1]);
+                    const secs = parseInt(match[2]);
+                    const ms = match[3].length === 3 ? parseInt(match[3]) : parseInt(match[3]) * 10;
+                    const time = mins * 60 + secs + ms / 1000;
+                    const text = match[4].trim();
+                    if (text) {
+                        lyrics.push({ time, text });
+                    }
+                }
+            }
+            return lyrics.sort((a, b) => a.time - b.time);
+        }
+
+        // 渲染歌词
+        function renderLyrics() {
+            const lyricsEl = document.getElementById('lyrics');
+            cachedLyricLines = null; // 清空缓存
+            if (parsedLyrics.length === 0) {
+                lyricsEl.innerHTML = '<div class="line">暂无歌词</div>';
+                return;
+            }
+            lyricsEl.innerHTML = parsedLyrics.map((l, i) => 
+                `<div class="line" data-index="${i}">${l.text}</div>`
+            ).join('');
+        }
+
+        // 更新歌词显示
+        // 缓存歌词DOM元素引用
+        let cachedLyricLines = null;
+        let cachedLyricsEl = null;
+
+        function updateLyrics(currentTime) {
+            if (parsedLyrics.length === 0) return;
+            
+            // 二分查找当前歌词
+            let newIndex = -1;
+            let lo = 0, hi = parsedLyrics.length - 1;
+            while (lo <= hi) {
+                const mid = (lo + hi) >> 1;
+                if (parsedLyrics[mid].time <= currentTime) {
+                    newIndex = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            
+            if (newIndex !== currentLyricIndex) {
+                const oldIndex = currentLyricIndex;
+                currentLyricIndex = newIndex;
+                
+                // 懒缓存歌词DOM
+                if (!cachedLyricLines || !document.contains(cachedLyricsEl)) {
+                    cachedLyricsEl = document.getElementById('lyrics');
+                    cachedLyricLines = cachedLyricsEl.querySelectorAll('.line');
+                }
+                
+                // 只更新变化的两行
+                if (oldIndex >= 0 && cachedLyricLines[oldIndex]) {
+                    cachedLyricLines[oldIndex].classList.remove('active');
+                }
+                if (newIndex >= 0 && cachedLyricLines[newIndex]) {
+                    cachedLyricLines[newIndex].classList.add('active');
+                }
+                
+                // 滚动到当前行
+                if (newIndex >= 0 && cachedLyricLines[newIndex]) {
+                    const container = document.getElementById('lyricsContainer');
+                    const lineEl = cachedLyricLines[newIndex];
+                    const offsetTop = lineEl.offsetTop - container.clientHeight / 2 + lineEl.clientHeight / 2;
+                    cachedLyricsEl.style.transform = `translateY(-${offsetTop}px)`;
+                }
+            }
+        }
+
+        async function playSong(index) {
+            if (index < 0 || index >= songs.length) return;
+            
+            // 清理旧的副歌状态和blob URL
+            window._chorusEnd = null;
+            if (audio.src && audio.src.startsWith('blob:')) {
+                URL.revokeObjectURL(audio.src);
+            }
+            
+            currentIndex = index;
+            const song = songs[index];
+            
+            songNameEl.textContent = song.name;
+            artistEl.textContent = song.artist;
+            errorMsg.textContent = '';
+            loadingEl.classList.add('active');
+            
+            renderPlaylist();
+            
+            // 重置歌词
+            parsedLyrics = [];
+            currentLyricIndex = -1;
+            renderLyrics();
+
+            try {
+                // 一次搜索获取歌曲URL和歌词
+                const keyword = `${song.name} ${song.artist}`.split('/')[0].trim();
+                const searchUrl = `https://api.i-meto.com/meting/api?server=netease&type=search&id=${encodeURIComponent(keyword)}&limit=10`;
+                const res = await fetch(searchUrl);
+                const data = await res.json();
+                
+                if (!data || data.length === 0) {
+                    throw new Error('未找到歌曲');
+                }
+                
+                // 保存搜索结果，用于检测试听版本
+                searchResults = data;
+                tryIndex = 0;
+                
+                // 找到匹配歌手的结果，优先选择原唱
+                const artistName = song.artist.split('/')[0].split('、')[0].trim();
+                for (let i = 0; i < data.length; i++) {
+                    if (data[i].author && data[i].author.includes(artistName)) {
+                        tryIndex = i;
+                        break;
+                    }
+                }
+                
+                // 用blob预加载音频，消除流式播放抖动
+                loadingEl.classList.add('active');
+                loadingEl.textContent = '正在加载歌曲...';
+                
+                try {
+                    const audioRes = await fetch(data[tryIndex].url);
+                    const audioBlob = await audioRes.blob();
+                    audio.src = URL.createObjectURL(audioBlob);
+                } catch (blobErr) {
+                    // CORS失败时直接用URL播放
+                    audio.src = data[tryIndex].url;
+                }
+                audio.play();
+                isPlaying = true;
+                playBtn.textContent = '■';
+                loadingEl.classList.remove('active');
+                loadingEl.textContent = '正在加载歌曲';
+                updateSourceInfo();
+                
+                // 异步获取歌词
+                if (data[tryIndex].lrc) {
+                    fetch(data[tryIndex].lrc)
+                        .then(r => r.text())
+                        .then(lrcText => {
+                            parsedLyrics = parseLRC(lrcText);
+                            renderLyrics();
+                        })
+                        .catch(() => {
+                            parsedLyrics = [];
+                            renderLyrics();
+                        });
+                }
+                
+                // 副歌模式在音频加载后设置（通过loadedmetadata事件）
+            } catch (e) {
+                loadingEl.classList.remove('active');
+                errorMsg.textContent = '播放失败，请尝试其他歌曲';
+                console.error(e);
+            }
+        }
+
+        // 设置副歌播放
+        function setupChorus(songName) {
+            const config = chorusConfig[songName];
+            const duration = audio.duration;
+            if (!config || !duration || isNaN(duration)) return;
+
+            // 计算实际副歌时间
+            let start = config.start;
+            let end = config.start + config.duration;
+            if (start >= duration) {
+                start = 0;
+                end = Math.min(config.duration, duration);
+            } else if (end > duration) {
+                end = duration;
+            }
+
+            window._chorusEnd = end;
+            audio.currentTime = start;
+        }
+
+        // 更新副歌标记
+        function updateChorusMarker() {
+            const songName = songs[currentIndex]?.name;
+            const config = chorusConfig[songName];
+            const duration = audio.duration;
+            
+            if (config && duration && !isNaN(duration)) {
+                // 如果歌曲太短，调整副歌时间
+                let start = config.start;
+                let end = config.start + config.duration;
+                if (start >= duration) {
+                    start = 0;
+                    end = Math.min(config.duration, duration);
+                } else if (end > duration) {
+                    end = duration;
+                }
+                
+                const startPercent = (start / duration) * 100;
+                const widthPercent = ((end - start) / duration) * 100;
+                chorusMarker.style.left = startPercent + '%';
+                chorusMarker.style.width = widthPercent + '%';
+                chorusMarker.style.display = 'block';
+            } else {
+                chorusMarker.style.display = 'none';
+            }
+        }
+
+        // 副歌模式切换
+        chorusOnly.addEventListener('change', () => {
+            if (isPlaying && currentIndex >= 0) {
+                if (chorusOnly.checked) {
+                    setupChorus(songs[currentIndex].name);
+                } else {
+                    // 关闭副歌模式
+                    window._chorusEnd = null;
+                }
+            }
+        });
+
+        // 播放/暂停
+        playBtn.addEventListener('click', () => {
+            if (currentIndex === -1) {
+                playSong(0);
+                return;
+            }
+            if (isPlaying) {
+                audio.pause();
+                playBtn.textContent = '▶';
+            } else {
+                audio.play();
+                playBtn.textContent = '■';
+            }
+            isPlaying = !isPlaying;
+        });
+
+        // 播放模式切换
+        randomMode.addEventListener('change', () => {
+            playMode = randomMode.checked ? 'random' : 'sequence';
+        });
+
+        // 音量控制
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volIcon = document.getElementById('volIcon');
+        volumeSlider.addEventListener('input', () => {
+            const vol = volumeSlider.value / 100;
+            audio.volume = vol;
+            volIcon.textContent = vol === 0 ? '🔇' : vol < 0.5 ? '🔉' : '🔊';
+        });
+        volIcon.addEventListener('click', () => {
+            if (audio.volume > 0) {
+                audio._prevVol = audio.volume;
+                audio.volume = 0;
+                volumeSlider.value = 0;
+                volIcon.textContent = '🔇';
+            } else {
+                audio.volume = audio._prevVol || 1;
+                volumeSlider.value = audio.volume * 100;
+                volIcon.textContent = audio.volume < 0.5 ? '🔉' : '🔊';
+            }
+        });
+
+        // 换源功能
+        const sourceSwitch = document.getElementById('sourceSwitch');
+        const switchSourceBtn = document.getElementById('switchSourceBtn');
+        const sourceInfo = document.getElementById('sourceInfo');
+
+        function updateSourceInfo() {
+            if (searchResults.length > 1) {
+                sourceSwitch.style.display = '';
+                sourceInfo.textContent = `${tryIndex + 1}/${searchResults.length}`;
+            } else {
+                sourceSwitch.style.display = 'none';
+            }
+        }
+
+        async function switchSource() {
+            if (searchResults.length <= 1) return;
+            if (currentIndex < 0) return;
+
+            let nextIdx = tryIndex;
+            // 找下一个有效源（最多循环一圈）
+            for (let i = 0; i < searchResults.length; i++) {
+                nextIdx = (nextIdx + 1) % searchResults.length;
+                if (nextIdx === tryIndex) break; // 已经全部试过
+                // 预检查：用HEAD请求获取时长太慢，直接尝试播放
+                break;
+            }
+            if (nextIdx === tryIndex) return;
+
+            tryIndex = nextIdx;
+            loadingEl.classList.add('active');
+            loadingEl.textContent = '切换源中...';
+
+            if (audio.src && audio.src.startsWith('blob:')) {
+                URL.revokeObjectURL(audio.src);
+            }
+
+            try {
+                const res = await fetch(searchResults[tryIndex].url);
+                const blob = await res.blob();
+                audio.src = URL.createObjectURL(blob);
+            } catch (e) {
+                audio.src = searchResults[tryIndex].url;
+            }
+            audio.play();
+            isPlaying = true;
+            playBtn.textContent = '■';
+            loadingEl.classList.remove('active');
+            loadingEl.textContent = '正在加载歌曲';
+            updateSourceInfo();
+
+            // 获取歌词
+            if (searchResults[tryIndex].lrc) {
+                fetch(searchResults[tryIndex].lrc)
+                    .then(r => r.text())
+                    .then(lrcText => {
+                        parsedLyrics = parseLRC(lrcText);
+                        renderLyrics();
+                    })
+                    .catch(() => {});
+            }
+        }
+
+        switchSourceBtn.addEventListener('click', switchSource);
+
+        // 上一首
+        prevBtn.addEventListener('click', () => {
+            if (playMode === 'random') {
+                playSong(Math.floor(Math.random() * filteredSongs.length));
+            } else {
+                let newIndex = currentIndex - 1;
+                if (newIndex < 0) newIndex = filteredSongs.length - 1;
+                playSong(newIndex);
+            }
+        });
+
+        // 下一首
+        nextBtn.addEventListener('click', () => {
+            if (playMode === 'random') {
+                playSong(Math.floor(Math.random() * filteredSongs.length));
+            } else {
+                let newIndex = currentIndex + 1;
+                if (newIndex >= filteredSongs.length) newIndex = 0;
+                playSong(newIndex);
+            }
+        });
+
+        // 进度条点击
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            if (audio.duration) {
+                audio.currentTime = percent * audio.duration;
+            }
+        });
+
+        // 播放时间更新 - 极简节流
+        let lastUpdateFrame = 0;
+        audio.addEventListener('timeupdate', () => {
+            // 副歌结束检测（最轻量的检查，放最前面）
+            if (chorusOnly.checked && window._chorusEnd && audio.currentTime >= window._chorusEnd) {
+                window._chorusEnd = null;
+                nextBtn.click();
+                return;
+            }
+            const now = performance.now();
+            if (now - lastUpdateFrame < 250) return; // 每秒最多4次
+            lastUpdateFrame = now;
+            if (!audio.duration) return;
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.style.width = percent + '%';
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+            totalTimeEl.textContent = formatTime(audio.duration);
+            updateLyrics(audio.currentTime);
+        });
+
+        // 音频加载完成时更新副歌标记和设置副歌播放
+        audio.addEventListener('loadedmetadata', async () => {
+            const duration = audio.duration;
+            
+            // 检测是否是试听版本（小于90秒），尝试下一个结果，最多尝试5次
+            if (duration && duration < 90 && searchResults.length > tryIndex + 1 && tryIndex < 5) {
+                tryIndex++;
+                if (audio.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(audio.src);
+                }
+                // 预加载新音频
+                try {
+                    const res = await fetch(searchResults[tryIndex].url);
+                    const blob = await res.blob();
+                    audio.src = URL.createObjectURL(blob);
+                    audio.play();
+                } catch (e) {
+                    // fallback直接用URL
+                    audio.src = searchResults[tryIndex].url;
+                    audio.play();
+                }
+                // 获取新结果的歌词
+                if (searchResults[tryIndex].lrc) {
+                    fetch(searchResults[tryIndex].lrc)
+                        .then(r => r.text())
+                        .then(lrcText => {
+                            parsedLyrics = parseLRC(lrcText);
+                            renderLyrics();
+                        })
+                        .catch(() => {});
+                }
+                updateSourceInfo();
+                return; // 等待新的loadedmetadata触发
+            }
+            
+            updateChorusMarker();
+            // 如果勾选了副歌模式，设置播放时间范围
+            if (chorusOnly.checked && currentIndex >= 0) {
+                setupChorus(songs[currentIndex].name);
+            }
+        });
+
+        // 自动播放下一首
+        audio.addEventListener('ended', () => {
+            nextBtn.click();
+        });
+
+        // 格式化时间
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 初始化
+        renderPlaylist();
+    </script>
+</body>
+</html>
